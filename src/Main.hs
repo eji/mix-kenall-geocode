@@ -5,14 +5,25 @@
 module Main where
 
 import Options.Applicative
+import MixKenallGeocode.Csv
+import MixKenallGeocode.Geocode
+import MixKenallGeocode.KenAllCsv
+import MixKenallGeocode.Mixer
+import qualified Data.Text.IO as T
 
 main :: IO()
-main = execParser opts >>= (\os -> print os)
+main = do
+  optsInfo <- execParser opts
+  withCsv (_geoCsv optsInfo) $ \geoCsv -> do
+    si <- csvToStateGeoInfo geoCsv
+    withCsv (_kenAllCsv optsInfo) $ \kaCsv -> do
+      mixedCsv <- mix si $ normalizeKenAllCsv kaCsv
+      mapM (T.putStrLn . mixedCsvRowToText) mixedCsv
 
 {- オプション -}
 data Options = Options
-  { kenAllCsv :: FilePath
-  , geoCsv :: FilePath
+  { _kenAllCsv :: FilePath
+  , _geoCsv :: FilePath
   }
   deriving Show
 

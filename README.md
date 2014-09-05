@@ -19,3 +19,9 @@ mix-kenall-geocode KEN_ALL.CSV 01_2012.csv
 ```
 
 
+## TODO
+
+  1. テスト追加
+  2. コードがやっつけで汚いので修正
+  3. ParsecからTrifectaに移行
+
