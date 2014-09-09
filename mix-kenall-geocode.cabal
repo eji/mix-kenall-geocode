@@ -60,4 +60,7 @@ test-suite spec
   other-modules: SpecHelper
   build-depends: base == 4.*
                , hspec >= 1.3
+               , HUnit
                , mix-kenall-geocode
+               , parsec
+               , text

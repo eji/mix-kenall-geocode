@@ -4,18 +4,18 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module MixKenallGeocode.KenAllCsv
-  (
-    SimpleKenAllCsvRow(..)
-  , KenAllCsvRow(..)
-  , ParsedAreaName(..)
-  , AreaOptAddr(..)
-  , AreaRange(..)
-  , AreaNumNm(..)
-  , AreaNum(..)
-  , AreaNote(..)
-  , ParsedNote(..)
-  , normalizeKenAllCsv
-  )
+--   (
+--     SimpleKenAllCsvRow(..)
+--   , KenAllCsvRow(..)
+--   , ParsedAreaName(..)
+--   , AreaOptAddr(..)
+--   , AreaRange(..)
+--   , AreaNumNm(..)
+--   , AreaNum(..)
+--   , AreaNote(..)
+--   , ParsedNote(..)
+--   , normalizeKenAllCsv
+--   )
 where
 
 import MixKenallGeocode.Csv
@@ -81,9 +81,13 @@ data AreaNote =
   | AreaParsedNote ParsedNote
   deriving (Eq, Show)
 
+-- data ParsedNote =
+--   ExceptionNote [AreaOptAddr]
+--   | ParsedNote [AreaOptAddr]
+--   deriving (Eq, Show)
 data ParsedNote =
-  ExceptionNote [AreaOptAddr]
-  | ParsedNote [AreaOptAddr]
+  ExceptionNote String
+  | ParsedNote String
   deriving (Eq, Show)
 
 -- 毎回 try するのが面倒なので、演算子を定義
@@ -241,28 +245,30 @@ areaNote =
   AreaParsedNote <$>
     (P.choice $ genNoteParsers noteBrackets)
 
-genNoteParsers :: [(Char, Char)] -> [AreaOptionParser ParsedNote]
-genNoteParsers seps = concatMap mkNoteParsers seps
+excTerm :: P.Parser String
+excTerm = P.string "を除く" <#> P.string "以外"
+
+sepStrs :: P.Parser String
+sepStrs = P.choice $ concat [[P.string [x], P.string [y]] | (x, y) <- noteBrackets]
+
+noteField :: P.Parser String
+-- noteField = P.manyTill P.anyChar (sepStrs <#> excTerm)
+noteField = P.many $ P.noneOf $ concat [[x, y] | (x, y) <- noteBrackets]
+
+mkNoteParser :: (Char, Char) -> P.Parser ParsedNote
+mkNoteParser (lsep, rsep) =
+  --[ ExceptionNote <$> ((lp *> noteField <* excTerm) <* rp)
+  --, ExceptionNote <$> ((lp *> noteField <* rp) <* excTerm)
+  --, ParsedNote <$> (lp *> noteField <* rp) 
+  --]
+  (ExceptionNote  <$> ((P.between lp rp noteField) <* excTerm))
+  <#> (ParsedNote <$> (P.between lp rp noteField))
   where
-    sepChars = concat [[x,y] | (x, y) <- seps]
-    sepStrs = P.choice $ concat [[P.string [x], P.string [y]] | (x, y) <- seps]
-    noteField = P.manyTill P.anyChar (P.try sepStrs <#> excTerm)
-    
-    excTerm = P.string "を除く"
-    
-    noteParser parser c = do
-      txt <- parser
-      case P.parse areaOptAddrs "" (T.pack txt) of
-        Left err -> error $ show err -- TODO
-        Right y -> return $ c y
-    
-    mkNoteParsers (lsep, rsep) =
-      [ noteParser ((lp *> noteField <* excTerm) <* rp) ExceptionNote
-      , noteParser (lp *> noteField <* rp) ParsedNote
-      ]
-      where
-        lp = P.char lsep
-        rp = P.char rsep
+    lp = P.char lsep
+    rp = P.char rsep
+
+genNoteParsers :: [(Char, Char)] -> [AreaOptionParser ParsedNote]
+genNoteParsers seps = map mkNoteParser seps
 
 fullWidthNumToInt :: String -> Int
 fullWidthNumToInt s = read (map fullToHalfWidthNum s) :: Int
@@ -329,7 +335,6 @@ normalizeAreaUnitAux addrs = map (modifyUnit lastAreaUnit) addrs
     modifyUnit'' _ NoareaNumNm = NoareaNumNm
     modifyUnit'' u ann@(AreaNumNm {..}) = ann{_unit=u}
 
-
 normalizeLeftAreaRange :: KenAllCsvRow -> KenAllCsvRow
 normalizeLeftAreaRange =
   normalizeAreaRange _left (\_ r rngs -> [AreaOptAddr r | r <- init rngs] ++ [AreaOptAddrWithBranch (last rngs) r])
@@ -382,14 +387,38 @@ normalizeAreaOptAddr r =
 normalizeAreaRanges :: [KenAllCsvRow] -> [KenAllCsvRow]
 normalizeAreaRanges = map (normalizeRightAreaRange . normalizeLeftAreaRange)
 
-normalizeAreaOpts = normalizeAreaOptAddrs . normalizeAreaRanges . normalizeAreaUnits
+normalizeAreaOpts =
+  normalizeAreaOptAddrs
+  . normalizeAreaRanges
+  . normalizeAreaUnits
+  . parseAreaOptions
 
 parsedAreaNameToAreaName :: ParsedAreaName -> AreaName
 parsedAreaNameToAreaName (AreaNameNoOpt s) = s
 parsedAreaNameToAreaName (AreaNameOpt s1 s2) = s1 ++ s2
 parsedAreaNameToAreaName (AreaNameBeginOpt s1 s2) = s1 ++ s2
 parsedAreaNameToAreaName (AreaNameEndOpt s) = s
-parsedAreaNameToAreaName (AreaNameParsedOpt s _) = s
+parsedAreaNameToAreaName (AreaNameParsedOpt s opts) =
+  concat (s:(map areaOptAddrToText opts))
+  where
+    areaOptAddrToText :: AreaOptAddr -> String
+    areaOptAddrToText (AreaOptAddr r) = areaRangeToText r
+    areaOptAddrToText a@(AreaOptAddrWithBranch{..}) =
+      concat [areaRangeToText _left, "－", areaRangeToText _right]
+
+    areaRangeToText :: AreaRange -> String
+    areaRangeToText (AreaRangeNumOnly n) = areaNumNmToText n
+    areaRangeToText r@(AreaRange{..}) = 
+      concat [areaNumNmToText _from, "～", areaNumNmToText _to]
+
+    areaNumNmToText :: AreaNumNm -> String
+    areaNumNmToText NoareaNumNm = ""
+    areaNumNmToText (AreaNumNm{..}) =
+      concat [_prefix, areaNumToText _num, _unit]
+
+    areaNumToText :: AreaNum -> String
+    areaNumToText NoNum = ""
+    areaNumToText (AreaNum n) = show n
 
 normalizeKenAllCsv :: Csv -> [SimpleKenAllCsvRow]
 normalizeKenAllCsv =
@@ -397,5 +426,3 @@ normalizeKenAllCsv =
   . normalizeAreaOpts
   . margeRows
   . reduceKenAllCsv
-
-

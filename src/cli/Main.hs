@@ -5,10 +5,7 @@
 module Main where
 
 import Options.Applicative
-import MixKenallGeocode.Csv
-import MixKenallGeocode.Geocode
-import MixKenallGeocode.KenAllCsv
-import MixKenallGeocode.Mixer
+import MixKenallGeocode
 import qualified Data.Text.IO as T
 
 main :: IO()
