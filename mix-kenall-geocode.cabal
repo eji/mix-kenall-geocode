@@ -23,35 +23,41 @@ library
                  , MixKenallGeocode.KenAllCsv
                  , MixKenallGeocode.Mixer
   default-language: Haskell2010
-  build-depends:
-    base >=4.6 && <4.7,
-    parsec,
-    text,
-    utf8-string,
-    bytestring,
-    edit-distance,
-    hashtables
+  build-depends: base >=4.6 && <4.7
+               , parsec
+               , text
+               , utf8-string
+               , bytestring
+               , edit-distance
+               , hashtables
 
 executable mix-kenall-geocode
-  hs-source-dirs:      src/cli
-  main-is:             Main.hs
-  -- other-modules:       
-  -- other-extensions:    
+  hs-source-dirs: src/cli
+  main-is: Main.hs
   ghc-options: -threaded -Wall -O
-  default-language:    Haskell2010
-  build-depends:
-    base >=4.6 && <4.7,
-    optparse-applicative,
-    text,
-    mix-kenall-geocode
+  default-language: Haskell2010
+  build-depends: base >=4.6 && <4.7
+               , optparse-applicative
+               , text
+               , mix-kenall-geocode
 
 test-suite doctests
   hs-source-dirs: test
   main-is: doctest.hs
   type: exitcode-stdio-1.0
   ghc-options: -threaded -Wall
-  default-language:    Haskell2010
+  default-language: Haskell2010
   build-depends: base == 4.*
                , doctest >= 0.8
                , mix-kenall-geocode
 
+test-suite spec
+  hs-source-dirs: test
+  main-is: Spec.hs
+  type: exitcode-stdio-1.0
+  ghc-options: -threaded -Wall
+  default-language: Haskell2010
+  other-modules: SpecHelper
+  build-depends: base == 4.*
+               , hspec >= 1.3
+               , mix-kenall-geocode
