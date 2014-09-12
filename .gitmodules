@@ -1,0 +1,6 @@
+[submodule "data/ken_all"]
+	path = data/ken_all
+	url = git@github.com:eji/ken_all.git
+[submodule "data/geo-location-data-of-japan"]
+	path = data/geo-location-data-of-japan
+	url = git@github.com:eji/geo-location-data-of-japan.git
