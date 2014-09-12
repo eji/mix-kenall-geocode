@@ -2,11 +2,24 @@
 
 BASE=$(cd $(dirname $0) && pwd)
 
-mix() 
+mix_aux()
 {
   $BASE/dist/build/mix-kenall-geocode/mix-kenall-geocode \
-          -k <(grep $1 $BASE/data/ken_all/data/KEN_ALL.CSV) \
-          -g <(gunzip --stdout $BASE/data/geo-location-data-of-japan/data/${2}.csv.gz)
+          -g <(gunzip --stdout $BASE/data/geo-location-data-of-japan/data/${1}.csv.gz | gawk "${2}<=NR && NR<${3}")
+}
+
+mix() 
+{
+  local TMP1=$(mktemp) 
+  local TMP2=$(mktemp) 
+  local TMP3=$(mktemp) 
+  local TMP4=$(mktemp) 
+
+  grep $1 $BASE/data/ken_all/data/KEN_ALL.CSV | ./dist/build/change-fmt-kenall/change-fmt-kenall > $TMP1
+  mix_aux $2 0 30000 < $TMP1 > $TMP2
+  mix_aux $2 30000 60000 < $TMP2 > $TMP3
+  mix_aux $2 60000 90000 < $TMP3 > $TMP4
+  mix_aux $2 90000 150000 < $TMP4
 }
 
 mix 北海道 01_hokkaido

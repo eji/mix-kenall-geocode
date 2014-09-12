@@ -7,7 +7,8 @@ module MixKenallGeocode.Csv
   Csv,
   CsvRow,
   csv,
-  withCsv
+  withCsv,
+  parseCsv
 )
 where
 
@@ -15,13 +16,8 @@ import System.IO
 import Control.Applicative
 import qualified Data.Text    as T
 import qualified Text.Parsec as P
-import qualified Text.Parsec.Combinator as P
 import qualified Text.Parsec.Text as P
-
--- 毎回 try するのが面倒なので、演算子を定義
-(<#>) :: (P.ParsecT s u m a) -> (P.ParsecT s u m a) -> (P.ParsecT s u m a)
-(<#>) a b = P.try a <|> b
-infixl 3 <#>
+import MixKenallGeocode.Util
 
 type CsvParser = P.Parsec T.Text ()
 
@@ -70,13 +66,13 @@ esc = P.char '"'
 withCsv :: FilePath -> (Csv -> IO a) -> IO()
 withCsv path task = withContents path $ \txt ->
   task (parseCsv txt) >> return ()
-  where
-    parseCsv :: String -> Csv
-    parseCsv txt = 
-      case P.parse csv "* Parse Error *" (T.pack txt) of
-        Left err -> error $ show err
-        Right x -> x
 
 withContents :: FilePath -> (String -> IO a) -> IO()
 withContents path task = withFile path ReadMode $ \h ->
   hGetContents h >>= task >> return ()
+
+parseCsv :: String -> Csv
+parseCsv txt = 
+  case P.parse csv "* Parse Error *" (T.pack txt) of
+    Left err -> error $ show err
+    Right x -> x

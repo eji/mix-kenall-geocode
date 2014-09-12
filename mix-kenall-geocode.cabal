@@ -17,11 +17,10 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs: src/lib
-  exposed-modules: MixKenallGeocode
+  exposed-modules:
+                   MixKenallGeocode.Util
                  , MixKenallGeocode.Csv
-                 , MixKenallGeocode.Geocode
-                 , MixKenallGeocode.KenAllCsv
-                 , MixKenallGeocode.Mixer
+  ghc-options: -threaded -Wall -O
   default-language: Haskell2010
   build-depends: base >=4.6 && <4.7
                , parsec
@@ -29,7 +28,7 @@ library
                , utf8-string
                , bytestring
                , edit-distance
-               , hashtables
+               , containers
 
 executable mix-kenall-geocode
   hs-source-dirs: src/cli
@@ -39,6 +38,29 @@ executable mix-kenall-geocode
   build-depends: base >=4.6 && <4.7
                , optparse-applicative
                , text
+               , parsec
+               , text
+               , utf8-string
+               , bytestring
+               , edit-distance
+               , containers
+               , mix-kenall-geocode
+
+
+executable change-fmt-kenall
+  hs-source-dirs: src/cli
+  main-is: ChangeFmtKenall.hs
+  ghc-options: -threaded -Wall -O
+  default-language: Haskell2010
+  build-depends: base >=4.6 && <4.7
+               , optparse-applicative
+               , text
+               , parsec
+               , text
+               , utf8-string
+               , bytestring
+               , edit-distance
+               , containers
                , mix-kenall-geocode
 
 test-suite doctests
